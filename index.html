@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GALERÍA PIXEL 80s · UPLOAD/DOWNLOAD</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    /* ===== RESET & ESTÉTICA RETRO ===== */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #010806; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+
+    @keyframes blink { 50% { opacity: 0; } }
+    @keyframes led { 0%,100% { opacity: 1; } 50% { opacity: 0.28; } }
+    @keyframes tkr { from { transform: translateX(700px); } to { transform: translateX(-100%); } }
+    .pg { font-family: 'Press Start 2P', 'Courier New', monospace; }
+
+    /* Cursores más finos */
+    .cur {
+      display: inline-block;
+      width: 3px;
+      height: .74em;
+      background: #7fffa0;
+      margin-left: 2px;
+      vertical-align: middle;
+      animation: blink .85s step-end infinite;
+    }
+    .ccur {
+      display: inline-block;
+      width: 2px;
+      height: .55em;
+      background: #7fffa0;
+      vertical-align: middle;
+      animation: blink .9s step-end infinite;
+    }
+
+    /* ===== TARJETAS ===== */
+    .card {
+      background: rgba(1,10,4,0.45);
+      border: 1px solid rgba(18,70,30,0.50);
+      overflow: hidden;
+      cursor: pointer;
+      transition: border-color .2s;
+      backdrop-filter: blur(3px);
+      display: flex;
+      flex-direction: column;
+    }
+    .card:hover { border-color: rgba(50,160,80,0.65); }
+
+    .media-container {
+      position: relative;
+      flex-shrink: 0;
+      background: #000;
+    }
+    .card-img, .card-video {
+      display: block;
+      width: 100%;
+      object-fit: cover;
+      opacity: 0.90;
+      transition: opacity .2s;
+    }
+    .card:hover .card-img,
+    .card:hover .card-video { opacity: 1; }
+
+    .zocalo {
+      border-top: 1px solid rgba(40,140,60,0.55);
+      background: rgba(0,6,2,0.70);
+      padding: 5px 7px 6px;
+      flex-shrink: 0;
+    }
+
+    .z-top {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+    .z-title {
+      font-size: 8px;
+      color: #5af090;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+      min-width: 0;
+    }
+    .z-type {
+      font-size: 6px;
+      color: #1a6030;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .z-sep {
+      border: none;
+      border-top: 1px solid rgba(18,70,30,0.35);
+      margin: 4px 0;
+    }
+
+    .z-lbl {
+      font-size: 6px;
+      color: #1a6030;
+      margin-bottom: 3px;
+    }
+
+    /* Área de texto (escritura) */
+    .z-inp {
+      display: block;
+      width: 100%;
+      background: transparent !important;
+      background-color: transparent !important;
+      -webkit-appearance: none;
+      appearance: none;
+      border: 1px solid rgba(40,140,60,0.45) !important;
+      color: #c8ffe0 !important;
+      -webkit-text-fill-color: #c8ffe0 !important;
+      font-family: 'Press Start 2P', 'Courier New', monospace;
+      font-size: 7px;
+      padding: 4px 5px;
+      outline: none !important;
+      resize: none;
+      line-height: 1.9;
+      height: calc(7px * 1.9 * 2 + 8px);
+      overflow: hidden;
+      box-shadow: none !important;
+      caret-color: #7fffa0;
+      margin-bottom: 4px;
+    }
+    .z-inp::placeholder {
+      color: #1a5530 !important;
+      -webkit-text-fill-color: #1a5530 !important;
+      opacity: 1 !important;
+    }
+    .z-inp:focus {
+      border-color: rgba(60,180,90,0.65) !important;
+    }
+
+    /* Área donde se muestra la nota guardada */
+    .z-saved-note {
+      font-size: 7px;
+      color: #a0ffc0;
+      background: rgba(0,20,5,0.5);
+      border-left: 2px solid #3dda70;
+      padding: 4px 5px;
+      margin: 6px 0 5px;
+      word-break: break-word;
+      min-height: 24px;
+      border: 1px dashed rgba(60,180,90,0.3);
+    }
+
+    /* Fila de botones */
+    .z-foot {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .zbtn {
+      background: transparent !important;
+      border: 1px solid rgba(18,70,30,0.50);
+      color: #1a6030;
+      font-family: 'Press Start 2P', 'Courier New', monospace;
+      font-size: 6px;
+      padding: 2px 4px;
+      cursor: pointer;
+      transition: border-color .15s, color .15s;
+    }
+    .zbtn:hover {
+      background: transparent !important;
+      border-color: rgba(60,180,90,0.70);
+      color: #7fffa0;
+    }
+    .zbtn:active { background: transparent !important; }
+
+    /* Feedback visual */
+    .z-ok {
+      font-size: 6px;
+      color: #3dda70;
+      opacity: 0;
+      transition: opacity .3s;
+      margin-left: auto;
+    }
+
+    /* Footer */
+    .pixel-footer {
+      position: relative;
+      z-index: 10;
+      margin-top: 20px;
+      padding: 12px 8px 8px;
+      border-top: 1px solid rgba(20,80,35,0.48);
+      background: rgba(1,7,3,0.78);
+      backdrop-filter: blur(4px);
+      text-align: center;
+    }
+    .footer-text {
+      font-size: 7px;
+      color: #5af090;
+      line-height: 1.8;
+      word-break: break-all;
+    }
+    .footer-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 0.9em;
+      background: #7fffa0;
+      vertical-align: middle;
+      margin-left: 4px;
+      animation: blink 1s step-end infinite;
+    }
+
+    /* Input file oculto */
+    .hidden-file-input {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+<div class="pg">
+  <div style="background:#010806; border-radius:8px; overflow:hidden; position:relative; padding:14px; min-height:580px; max-width:1400px; margin:0 auto;">
+
+    <!-- Canvas de estrellas + scanlines -->
+    <canvas id="stv" style="position:absolute; inset:0; pointer-events:none; z-index:0;"></canvas>
+    <div style="position:absolute; inset:0; background:repeating-linear-gradient(0deg, rgba(0,0,0,0.05) 0, rgba(0,0,0,0.05) 1px, transparent 1px, transparent 3px); pointer-events:none; z-index:5;"></div>
+
+    <!-- HEADER -->
+    <div style="position:relative; z-index:10; border:1px solid rgba(20,80,35,0.48); background:rgba(1,7,3,0.78); backdrop-filter:blur(4px); padding:10px 12px; margin-bottom:14px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:7px; padding-bottom:5px; border-bottom:1px solid rgba(15,60,25,0.32);">
+        <span style="font-size:8px; color:#0d4020; letter-spacing:2px;">// SYS:GALLERY_NODE //</span>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span style="font-size:8px; color:#00ff44; animation:led 1.4s ease-in-out infinite;">● ONLINE</span>
+          <button class="zbtn" id="sndbtn" style="font-size:7px; padding:3px 7px;">♪ SND:OFF</button>
+        </div>
+      </div>
+      <div id="htit" style="font-size:11px; color:#88ffaa; min-height:18px; line-height:1.6;"><span class="cur"></span></div>
+      <div style="overflow:hidden; border-top:1px solid rgba(15,60,25,0.28); margin-top:7px; padding-top:4px;">
+        <span style="display:inline-block; white-space:nowrap; font-size:7px; color:#0d4020; animation:tkr 30s linear infinite;">ONE&nbsp;BY&nbsp;ONE&nbsp;EDITIONS &nbsp;◆&nbsp; COLLECTIONS &nbsp;◆&nbsp; PIXEL&nbsp;ART &nbsp;◆&nbsp; DIGITAL&nbsp;ORIGINALS &nbsp;◆&nbsp; UNIQUE&nbsp;PIECES &nbsp;◆&nbsp; LIMITED&nbsp;SERIES &nbsp;◆&nbsp; ONE&nbsp;BY&nbsp;ONE &nbsp;◆&nbsp;</span>
+      </div>
+    </div>
+
+    <!-- GRID DE OBRAS -->
+    <div style="position:relative; z-index:10; display:grid; grid-template-columns:repeat(4,1fr); gap:12px;">
+
+      <!-- HERO 1 -->
+      <div class="card" style="grid-column:span 2;">
+        <div class="media-container" style="height:260px;">
+          <img class="card-img" src="https://picsum.photos/600/320?random=21" style="height:100%; width:100%;" loading="lazy">
+        </div>
+        <div class="zocalo">
+          <div class="z-top">
+            <div class="z-title" id="t1"><span class="ccur"></span></div>
+            <span class="z-type">[1/1]</span>
+          </div>
+          <hr class="z-sep">
+          <div class="z-lbl">&gt; NOTA_</div>
+          <textarea class="z-inp" placeholder="escribe aqui..."></textarea>
+          <div class="z-saved-note"></div>
+          <div class="z-foot">
+            <button class="zbtn enter-btn">[ENT]</button>
+            <button class="zbtn return-btn">[RET]</button>
+            <button class="zbtn upload-btn">[UPL]</button>
+            <button class="zbtn download-btn">[DWL]</button>
+            <span class="z-ok">✓ GUARDADO</span>
+          </div>
+          <input type="file" class="hidden-file-input" accept="image/*,video/mp4">
+        </div>
+      </div>
+
+      <!-- SMALL 1 -->
+      <div class="card">
+        <div class="media-container" style="height:170px;">
+          <img class="card-img" src="https://picsum.photos/300/200?random=22" style="height:100%; width:100%;" loading="lazy">
+        </div>
+        <div class="zocalo">
+          <div class="z-top">
+            <div class="z-title" id="t2"><span class="ccur"></span></div>
+            <span class="z-type">[/50]</span>
+          </div>
+          <hr class="z-sep">
+          <div class="z-lbl">&gt; NOTA_</div>
+          <textarea class="z-inp" placeholder="escribe..."></textarea>
+          <div class="z-saved-note"></div>
+          <div class="z-foot">
+            <button class="zbtn enter-btn">[ENT]</button>
+            <button class="zbtn return-btn">[RET]</button>
+            <button class="zbtn upload-btn">[UPL]</button>
+            <button class="zbtn download-btn">[DWL]</button>
+            <span class="z-ok">✓ GUARDADO</span>
+          </div>
+          <input type="file" class="hidden-file-input" accept="image/*,video/mp4">
+        </div>
+      </div>
+
+      <!-- SMALL 2 -->
+      <div class="card">
+        <div class="media-container" style="height:170px;">
+          <img class="card-img" src="https://picsum.photos/300/200?random=23" style="height:100%; width:100%;" loading="lazy">
+        </div>
+        <div class="zocalo">
+          <div class="z-top">
+            <div class="z-title" id="t3"><span class="ccur"></span></div>
+            <span class="z-type">[MP4]</span>
+          </div>
+          <hr class="z-sep">
+          <div class="z-lbl">&gt; NOTA_</div>
+          <textarea class="z-inp" placeholder="escribe..."></textarea>
+          <div class="z-saved-note"></div>
+          <div class="z-foot">
+            <button class="zbtn enter-btn">[ENT]</button>
+            <button class="zbtn return-btn">[RET]</button>
+            <button class="zbtn upload-btn">[UPL]</button>
+            <button class="zbtn download-btn">[DWL]</button>
+            <span class="z-ok">✓ GUARDADO</span>
+          </div>
+          <input type="file" class="hidden-file-input" accept="image/*,video/mp4">
+        </div>
+      </div>
+
+      <!-- HERO 2 -->
+      <div class="card" style="grid-column:span 2;">
+        <div class="media-container" style="height:260px;">
+          <img class="card-img" src="https://picsum.photos/600/320?random=24" style="height:100%; width:100%;" loading="lazy">
+        </div>
+        <div class="zocalo">
+          <div class="z-top">
+            <div class="z-title" id="t4"><span class="ccur"></span></div>
+            <span class="z-type">[1/1]</span>
+          </div>
+          <hr class="z-sep">
+          <div class="z-lbl">&gt; NOTA_</div>
+          <textarea class="z-inp" placeholder="escribe aqui..."></textarea>
+          <div class="z-saved-note"></div>
+          <div class="z-foot">
+            <button class="zbtn enter-btn">[ENT]</button>
+            <button class="zbtn return-btn">[RET]</button>
+            <button class="zbtn upload-btn">[UPL]</button>
+            <button class="zbtn download-btn">[DWL]</button>
+            <span class="z-ok">✓ GUARDADO</span>
+          </div>
+          <input type="file" class="hidden-file-input" accept="image/*,video/mp4">
+        </div>
+      </div>
+
+      <!-- SMALL 3 -->
+      <div class="card">
+        <div class="media-container" style="height:170px;">
+          <img class="card-img" src="https://picsum.photos/300/200?random=25" style="height:100%; width:100%;" loading="lazy">
+        </div>
+        <div class="zocalo">
+          <div class="z-top">
+            <div class="z-title" id="t5"><span class="ccur"></span></div>
+            <span class="z-type">[1/1]</span>
+          </div>
+          <hr class="z-sep">
+          <div class="z-lbl">&gt; NOTA_</div>
+          <textarea class="z-inp" placeholder="escribe..."></textarea>
+          <div class="z-saved-note"></div>
+          <div class="z-foot">
+            <button class="zbtn enter-btn">[ENT]</button>
+            <button class="zbtn return-btn">[RET]</button>
+            <button class="zbtn upload-btn">[UPL]</button>
+            <button class="zbtn download-btn">[DWL]</button>
+            <span class="z-ok">✓ GUARDADO</span>
+          </div>
+          <input type="file" class="hidden-file-input" accept="image/*,video/mp4">
+        </div>
+      </div>
+
+      <!-- SMALL 4 -->
+      <div class="card">
+        <div class="media-container" style="height:170px;">
+          <img class="card-img" src="https://picsum.photos/300/200?random=26" style="height:100%; width:100%;" loading="lazy">
+        </div>
+        <div class="zocalo">
+          <div class="z-top">
+            <div class="z-title" id="t6"><span class="ccur"></span></div>
+            <span class="z-type">[MP4]</span>
+          </div>
+          <hr class="z-sep">
+          <div class="z-lbl">&gt; NOTA_</div>
+          <textarea class="z-inp" placeholder="escribe..."></textarea>
+          <div class="z-saved-note"></div>
+          <div class="z-foot">
+            <button class="zbtn enter-btn">[ENT]</button>
+            <button class="zbtn return-btn">[RET]</button>
+            <button class="zbtn upload-btn">[UPL]</button>
+            <button class="zbtn download-btn">[DWL]</button>
+            <span class="z-ok">✓ GUARDADO</span>
+          </div>
+          <input type="file" class="hidden-file-input" accept="image/*,video/mp4">
+        </div>
+      </div>
+    </div>
+
+    <!-- FOOTER CON WALLET SOLANA (CORREGIDO) -->
+    <footer class="pixel-footer">
+      <div class="footer-text" id="footer-typing">
+        <span id="footer-content"></span><span class="footer-cursor"></span>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<script>
+  (function(){
+    // ========== CANVAS DE ESTRELLAS ==========
+    const cv = document.getElementById('stv'), pr = cv.parentElement, cx = cv.getContext('2d');
+    let W, H, stars = [];
+    function rsz() { W = cv.width = pr.offsetWidth; H = cv.height = pr.offsetHeight; }
+    function init() {
+      stars = [];
+      for (let i = 0; i < 200; i++) {
+        const spd = 0.12 + Math.random() * 0.38, a = Math.random() * Math.PI * 2;
+        stars.push({
+          x: Math.random() * W, y: Math.random() * H, r: 0.3 + Math.random() * 1.3,
+          vx: Math.cos(a) * spd, vy: Math.sin(a) * spd,
+          al: 0.35 + Math.random() * 0.65,
+          da: (Math.random() > .5 ? 1 : -1) * (0.004 + Math.random() * 0.007)
+        });
+      }
+    }
+    function frame() {
+      cx.clearRect(0,0,W,H);
+      cx.fillStyle = '#010806';
+      cx.fillRect(0,0,W,H);
+      for (const s of stars) {
+        s.x += s.vx; s.y += s.vy; s.al += s.da;
+        if (s.al > 1 || s.al < 0.2) s.da *= -1;
+        if (s.x < 0) s.x = W; if (s.x > W) s.x = 0;
+        if (s.y < 0) s.y = H; if (s.y > H) s.y = 0;
+        cx.beginPath(); cx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+        cx.fillStyle = `rgba(130,255,170,${s.al*0.85})`;
+        cx.fill();
+      }
+      requestAnimationFrame(frame);
+    }
+    rsz(); init(); frame();
+    window.addEventListener('resize', () => { rsz(); init(); });
+  })();
+
+  (function(){
+    // ========== EFECTO DE TIPEO EN HEADER ==========
+    const el = document.getElementById('htit'), txt = 'PIXEL ART GALLERY — ONE BY ONE & COLLECTIONS';
+    let i = 0, del = false;
+    function tick() {
+      el.innerHTML = txt.slice(0, i) + '<span class="cur"></span>';
+      if (!del) {
+        if (i < txt.length) { i++; setTimeout(tick, 55 + Math.random()*40); }
+        else setTimeout(() => { del = true; tick(); }, 2800);
+      } else {
+        if (i > 0) { i--; setTimeout(tick, 24); }
+        else { del = false; setTimeout(tick, 400); }
+      }
+    }
+    setTimeout(tick, 400);
+  })();
+
+  // ========== TÍTULOS DE TARJETAS (EFECTO MÁQUINA) ==========
+  [
+    ['t1','NEON_SAMURAI.PNG'],
+    ['t2','CYBER_GATO_04.GIF'],
+    ['t3','SINTETIZADOR.MP4'],
+    ['t4','GLITCH_ART.GIF'],
+    ['t5','TORRE_DATOS.PNG'],
+    ['t6','PAISAJE_SINTETICO.MP4']
+  ].forEach(([id, txt], idx) => {
+    let i = 0;
+    const el = document.getElementById(id);
+    function tick() {
+      el.innerHTML = txt.slice(0, i) + '<span class="ccur"></span>';
+      if (i <= txt.length) { i++; setTimeout(tick, 52 + Math.random()*38); }
+    }
+    setTimeout(tick, 400 + idx * 180);
+  });
+
+  // ========== FOOTER CON EFECTO DE TIPEO (CORREGIDO) ==========
+  (function(){
+    const contentSpan = document.getElementById('footer-content');
+    const fullText = 'SUPPORT THIS PROJECT  SOLANA WALLET  J2mevaG4qz1vFSyGcJ3fPsKnBip7o8pYKm5r9TaUycDZ';
+    let i = 0;
+    let typingInterval;
+
+    function typeNextChar() {
+      if (i < fullText.length) {
+        contentSpan.textContent = fullText.slice(0, i + 1);
+        i++;
+        typingInterval = setTimeout(typeNextChar, 70);
+      } else {
+        clearTimeout(typingInterval);
+      }
+    }
+
+    setTimeout(typeNextChar, 800);
+  })();
+
+  // ========== LÓGICA: ENTER GUARDA NOTA, RETURN LIMPIA ==========
+  document.querySelectorAll('.card').forEach(card => {
+    const textarea = card.querySelector('.z-inp');
+    const savedDiv = card.querySelector('.z-saved-note');
+    const enterBtn = card.querySelector('.enter-btn');
+    const returnBtn = card.querySelector('.return-btn');
+    const okSpan = card.querySelector('.z-ok');
+
+    enterBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const note = textarea.value.trim();
+      savedDiv.textContent = note ? `> ${note}` : '> (sin nota)';
+      if (okSpan) {
+        okSpan.style.opacity = '1';
+        setTimeout(() => okSpan.style.opacity = '0', 1200);
+      }
+    });
+
+    returnBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      textarea.value = '';
+    });
+  });
+
+  // ========== UPLOAD Y DOWNLOAD POR TARJETA ==========
+  document.querySelectorAll('.card').forEach(card => {
+    const mediaContainer = card.querySelector('.media-container');
+    const uploadBtn = card.querySelector('.upload-btn');
+    const downloadBtn = card.querySelector('.download-btn');
+    const fileInput = card.querySelector('.hidden-file-input');
+    let currentMedia = card.querySelector('.card-img, .card-video');
+    let currentBlob = null;
+
+    const initialSrc = currentMedia.src || (currentMedia.querySelector('source') ? currentMedia.querySelector('source').src : '');
+    if (initialSrc && initialSrc.startsWith('http')) {
+      fetch(initialSrc).then(r => r.blob()).then(blob => { currentBlob = blob; }).catch(() => {});
+    }
+
+    function setMediaFromFile(file) {
+      const fileURL = URL.createObjectURL(file);
+      const isVideo = file.type.startsWith('video/');
+      currentBlob = file;
+
+      const newMedia = isVideo ? document.createElement('video') : document.createElement('img');
+      newMedia.className = isVideo ? 'card-video' : 'card-img';
+      newMedia.style.width = '100%';
+      newMedia.style.height = '100%';
+      newMedia.style.objectFit = 'cover';
+      if (isVideo) {
+        newMedia.controls = false;
+        newMedia.loop = true;
+        newMedia.muted = true;
+        newMedia.autoplay = true;
+        newMedia.playsInline = true;
+        const source = document.createElement('source');
+        source.src = fileURL;
+        source.type = file.type;
+        newMedia.appendChild(source);
+      } else {
+        newMedia.src = fileURL;
+      }
+
+      mediaContainer.innerHTML = '';
+      mediaContainer.appendChild(newMedia);
+      currentMedia = newMedia;
+    }
+
+    uploadBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      fileInput.click();
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      setMediaFromFile(file);
+      fileInput.value = '';
+    });
+
+    downloadBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!currentBlob) {
+        const src = currentMedia.src || (currentMedia.querySelector('source') ? currentMedia.querySelector('source').src : '');
+        if (src && src.startsWith('http')) {
+          fetch(src).then(r => r.blob()).then(blob => {
+            currentBlob = blob;
+            triggerDownload(blob);
+          }).catch(() => alert('No se pudo descargar'));
+        } else if (src && src.startsWith('blob:')) {
+          fetch(src).then(r => r.blob()).then(blob => triggerDownload(blob));
+        } else {
+          alert('No hay archivo para descargar');
+        }
+        return;
+      }
+      triggerDownload(currentBlob);
+    });
+
+    function triggerDownload(blob) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      let ext = '.png';
+      if (blob.type.startsWith('video/')) ext = '.mp4';
+      else if (blob.type === 'image/gif') ext = '.gif';
+      else if (blob.type === 'image/jpeg') ext = '.jpg';
+      a.download = `obra_${Date.now()}${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  });
+
+  // ========== SONIDO DE LLUVIA CÁLIDO ==========
+  let audioCtx = null;
+  let rainGain = null;
+  let isSoundOn = false;
+  const soundBtn = document.getElementById('sndbtn');
+
+  function initRainSound() {
+    if (audioCtx) return true;
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      rainGain = audioCtx.createGain();
+      rainGain.gain.value = 0.12;
+      rainGain.connect(audioCtx.destination);
+
+      const bufferSize = 2 * audioCtx.sampleRate;
+      const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      let b0 = 0, b1 = 0, b2 = 0;
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        b0 = 0.99765 * b0 + white * 0.0990460;
+        b1 = 0.96300 * b1 + white * 0.2965164;
+        b2 = 0.57000 * b2 + white * 1.0526913;
+        output[i] = b0 + b1 + b2 + white * 0.1848;
+      }
+      let max = 0;
+      for (let i = 0; i < bufferSize; i++) if (Math.abs(output[i]) > max) max = Math.abs(output[i]);
+      if (max > 0) for (let i = 0; i < bufferSize; i++) output[i] /= max;
+
+      const brownNoise = audioCtx.createBufferSource();
+      brownNoise.buffer = noiseBuffer;
+      brownNoise.loop = true;
+
+      const lowpass = audioCtx.createBiquadFilter();
+      lowpass.type = 'lowpass';
+      lowpass.frequency.value = 800;
+      lowpass.Q.value = 0.5;
+
+      const convolver = audioCtx.createConvolver();
+      const reverbTime = 1.5;
+      const reverbLength = audioCtx.sampleRate * reverbTime;
+      const reverbBuffer = audioCtx.createBuffer(2, reverbLength, audioCtx.sampleRate);
+      for (let ch = 0; ch < 2; ch++) {
+        const channel = reverbBuffer.getChannelData(ch);
+        for (let i = 0; i < reverbLength; i++) {
+          channel[i] = (Math.random() * 2 - 1) * Math.exp(-i / (audioCtx.sampleRate * 0.8));
+        }
+      }
+      convolver.buffer = reverbBuffer;
+      const wetGain = audioCtx.createGain();
+      wetGain.gain.value = 0.15;
+      const dryGain = audioCtx.createGain();
+      dryGain.gain.value = 0.85;
+
+      brownNoise.connect(lowpass);
+      lowpass.connect(dryGain);
+      lowpass.connect(convolver);
+      convolver.connect(wetGain);
+      dryGain.connect(rainGain);
+      wetGain.connect(rainGain);
+
+      brownNoise.start();
+      return true;
+    } catch(e) {
+      console.warn('Audio no soportado:', e);
+      return false;
+    }
+  }
+
+  function toggleSound() {
+    if (!isSoundOn) {
+      if (!audioCtx) {
+        const success = initRainSound();
+        if (!success) {
+          alert('Tu navegador no soporta Web Audio API');
+          return;
+        }
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume().then(() => {
+          isSoundOn = true;
+          soundBtn.textContent = '♪ SND:ON';
+          soundBtn.style.color = '#7fffa0';
+          soundBtn.style.borderColor = 'rgba(60,180,90,0.7)';
+        }).catch(e => console.warn('Error al reanudar audio:', e));
+      } else {
+        isSoundOn = true;
+        soundBtn.textContent = '♪ SND:ON';
+        soundBtn.style.color = '#7fffa0';
+        soundBtn.style.borderColor = 'rgba(60,180,90,0.7)';
+      }
+    } else {
+      if (audioCtx) {
+        audioCtx.suspend().then(() => {
+          isSoundOn = false;
+          soundBtn.textContent = '♪ SND:OFF';
+          soundBtn.style.color = '';
+          soundBtn.style.borderColor = '';
+        });
+      }
+    }
+  }
+
+  soundBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    toggleSound();
+  });
+
+  document.body.addEventListener('click', () => {
+    if (audioCtx && audioCtx.state === 'suspended' && isSoundOn) {
+      audioCtx.resume();
+    }
+  }, { once: true });
+
+</script>
+</body>
+</html>
