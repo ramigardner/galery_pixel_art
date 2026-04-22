@@ -599,106 +599,114 @@
     });
   });
 
-  // ========== UPLOAD Y DOWNLOAD POR TARJETA ==========
-  document.querySelectorAll('.card').forEach(card => {
+  // ========== CLOUDINARY CONFIG ==========
+  const CLD_CLOUD  = 'dqle0pbmv';
+  const CLD_PRESET = 'galeria';
+  const CLD_URL    = `https://api.cloudinary.com/v1_1/${CLD_CLOUD}/upload`;
+
+  // ========== UPLOAD + PERSISTENCIA POR TARJETA ==========
+  document.querySelectorAll('.card').forEach((card, idx) => {
+    const cardKey        = `pgx_card_${idx}`;
     const mediaContainer = card.querySelector('.media-container');
-    const uploadBtn = card.querySelector('.upload-btn');
-    const downloadBtn = card.querySelector('.download-btn');
-    const fileInput = card.querySelector('.hidden-file-input');
-    let currentMedia = card.querySelector('.card-img, .card-video');
-    let currentBlob = null;
+    const uploadBtn      = card.querySelector('.upload-btn');
+    const downloadBtn    = card.querySelector('.download-btn');
+    const fileInput      = card.querySelector('.hidden-file-input');
+    const titleEl        = card.querySelector('.z-title');
+    const okSpan         = card.querySelector('.z-ok');
+    let currentUrl       = null;
 
-    const initialSrc = currentMedia.src || (currentMedia.querySelector('source') ? currentMedia.querySelector('source').src : '');
-    if (initialSrc && initialSrc.startsWith('http')) {
-      fetch(initialSrc).then(r => r.blob()).then(blob => { currentBlob = blob; }).catch(() => {});
-    }
-
-    function setMediaFromFile(file) {
-      const fileURL = URL.createObjectURL(file);
-      const isVideo = file.type.startsWith('video/');
-      currentBlob = file;
-
+    // — Renderizar media desde URL permanente
+    function setMediaFromUrl(url, isVideo, filename) {
+      currentUrl = url;
       const newMedia = isVideo ? document.createElement('video') : document.createElement('img');
       newMedia.className = isVideo ? 'card-video' : 'card-img';
-      newMedia.style.width = '100%';
-      newMedia.style.height = '100%';
-      newMedia.style.objectFit = 'cover';
+      newMedia.style.cssText = 'width:100%;height:100%;object-fit:cover;opacity:0.90;';
       if (isVideo) {
-        newMedia.controls = false;
-        newMedia.loop = true;
-        newMedia.muted = true;
-        newMedia.autoplay = true;
-        newMedia.playsInline = true;
-        const source = document.createElement('source');
-        source.src = fileURL;
-        source.type = file.type;
-        newMedia.appendChild(source);
+        newMedia.loop = true; newMedia.muted = true;
+        newMedia.autoplay = true; newMedia.playsInline = true;
+        const src = document.createElement('source');
+        src.src = url; src.type = 'video/mp4';
+        newMedia.appendChild(src);
       } else {
-        newMedia.src = fileURL;
+        newMedia.src = url;
       }
-
       mediaContainer.innerHTML = '';
       mediaContainer.appendChild(newMedia);
-      currentMedia = newMedia;
-    }
 
-    uploadBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      fileInput.click();
-    });
-
-    fileInput.addEventListener('change', (e) => {
-      const file = fileInput.files[0];
-      if (!file) return;
-      setMediaFromFile(file);
-      // Actualizar título de la tarjeta con el nombre del archivo
-      const titleEl = card.querySelector('.z-title');
-      if (titleEl) {
-        const name = file.name.toUpperCase();
-        let i = 0;
-        titleEl.innerHTML = '';
+      // Efecto tipeo en título
+      if (titleEl && filename) {
+        const n = filename.toUpperCase(); let i = 0; titleEl.innerHTML = '';
         function typeName() {
-          titleEl.innerHTML = name.slice(0, i) + '<span class="ccur"></span>';
-          if (i <= name.length) { i++; setTimeout(typeName, 40 + Math.random()*30); }
+          titleEl.innerHTML = n.slice(0,i) + '<span class="ccur"></span>';
+          if (i <= n.length) { i++; setTimeout(typeName, 40 + Math.random()*30); }
         }
         typeName();
       }
+    }
+
+    // — Restaurar desde localStorage al cargar
+    try {
+      const saved = localStorage.getItem(cardKey);
+      if (saved) {
+        const d = JSON.parse(saved);
+        setMediaFromUrl(d.url, d.isVideo, d.filename);
+      }
+    } catch(e) {}
+
+    // — Subir a Cloudinary
+    async function uploadToCloudinary(file) {
+      uploadBtn.textContent = '[···]';
+      uploadBtn.style.color = '#3dda70';
+      const isVideo  = file.type.startsWith('video/');
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', CLD_PRESET);
+      formData.append('folder', 'galeria');
+
+      try {
+        const res  = await fetch(CLD_URL, { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.secure_url) {
+          setMediaFromUrl(data.secure_url, isVideo, file.name);
+          localStorage.setItem(cardKey, JSON.stringify({
+            url: data.secure_url, isVideo, filename: file.name
+          }));
+          if (okSpan) {
+            okSpan.textContent = '✓ SUBIDO';
+            okSpan.style.opacity = '1';
+            setTimeout(() => { okSpan.style.opacity='0'; okSpan.textContent='✓ GUARDADO'; }, 2500);
+          }
+        } else {
+          console.error('Cloudinary error:', data);
+          uploadBtn.style.color = '#ff4444';
+          setTimeout(() => { uploadBtn.style.color=''; }, 2000);
+        }
+      } catch(err) {
+        console.error('Upload failed:', err);
+        uploadBtn.style.color = '#ff4444';
+        setTimeout(() => { uploadBtn.style.color=''; }, 2000);
+      } finally {
+        uploadBtn.textContent = '[UPL]';
+        uploadBtn.style.color = '';
+      }
+    }
+
+    uploadBtn.addEventListener('click',  e => { e.stopPropagation(); fileInput.click(); });
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      uploadToCloudinary(file);
       fileInput.value = '';
     });
 
-    downloadBtn.addEventListener('click', (e) => {
+    // — Download: abre URL de Cloudinary
+    downloadBtn.addEventListener('click', e => {
       e.stopPropagation();
-      if (!currentBlob) {
-        const src = currentMedia.src || (currentMedia.querySelector('source') ? currentMedia.querySelector('source').src : '');
-        if (src && src.startsWith('http')) {
-          fetch(src).then(r => r.blob()).then(blob => {
-            currentBlob = blob;
-            triggerDownload(blob);
-          }).catch(() => alert('No se pudo descargar'));
-        } else if (src && src.startsWith('blob:')) {
-          fetch(src).then(r => r.blob()).then(blob => triggerDownload(blob));
-        } else {
-          alert('No hay archivo para descargar');
-        }
-        return;
-      }
-      triggerDownload(currentBlob);
-    });
-
-    function triggerDownload(blob) {
-      const url = URL.createObjectURL(blob);
+      if (!currentUrl) { alert('No hay archivo cargado'); return; }
       const a = document.createElement('a');
-      a.href = url;
-      let ext = '.png';
-      if (blob.type.startsWith('video/')) ext = '.mp4';
-      else if (blob.type === 'image/gif') ext = '.gif';
-      else if (blob.type === 'image/jpeg') ext = '.jpg';
-      a.download = `obra_${Date.now()}${ext}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
+      a.href = currentUrl; a.target = '_blank'; a.download = '';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    });
   });
 
   // ========== SONIDO DE LLUVIA CÁLIDO ==========
